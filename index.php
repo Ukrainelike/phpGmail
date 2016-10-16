@@ -13,7 +13,7 @@ $client = new Google_Client();
 $client->setAuthConfig($oauth_credentials);
 $client->setRedirectUri($redirect_uri);
 $client->setScopes(implode(' ', array(Google_Service_Gmail::GMAIL_READONLY)));
-
+$service = new Google_Service_Gmail($client);
 
 if (isset($_REQUEST['logout'])) {
     unset($_SESSION['access_token']);
@@ -38,13 +38,7 @@ if ($client->getAccessToken() && isset($_GET['url'])) {
     $short = $service->url->insert($url);
     $_SESSION['access_token'] = $client->getAccessToken();
 }
-if (isset($_POST['responseEmail'])) {
-    getListMessages($client,$_POST['responseEmail']);
-
-}
-function getListMessages($client, $userId) {
-
-    $service = new Google_Service_Gmail($client);
+function getListMessages($service, $userId) {
     $pageToken=NULL;
     $messages=array();
     $opt_param=array();
@@ -53,7 +47,7 @@ function getListMessages($client, $userId) {
             if($pageToken) {
                 $opt_param['pageToken']=$pageToken;
             }
-            $opt_param['q'] = '"from:kyharskii_ruslan@ukr.net"';
+            $opt_param['q'] = '"from:'.$userId.'"';
             $messagesResponse=$service->users_messages->listUsersMessages("me",$opt_param);
             if($messagesResponse->getMessages()) {
                 $messages=array_merge($messages,$messagesResponse->getMessages());
@@ -66,13 +60,28 @@ function getListMessages($client, $userId) {
     $table='<table border="1">';
     $i=1;
     foreach ($messages as $message) {
-        $table.='<tr><td>'.$i.'</td><td><a href="/detailsmail.php?'.$message->getId().'">Email:'.$message->getId().'</a></td></tr>';
+        $table.='<tr><td><a href="?getEmail='.$message->getId().'">'.$message->getId().'</a></td></tr>';
         $i++;
     }
-    echo $table.'</$table>';
+    return $table.'</$table>';
+}
+function getTextEmail($service,$messageId) {
+    $optParamsGet = [];
+    $optParamsGet['format'] = 'full';
+    $message = $service->users_messages->get('me',$messageId,$optParamsGet);
+    $parts = $message->getPayload()->getParts();
+    $body = $parts[0]['body'];
+    $rawData = $body->data;
+    $sanitizedData = strtr($rawData,'-_', '+/');
+    $decodedMessage = base64_decode($sanitizedData);
+    return '<div>'.$decodedMessage.'</div>';
 }
 ?>
-
+<html>
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
 <div class="box">
     <?php if (empty($short)): ?>
         <form id="url" method="POST" action="<?= $_SERVER['PHP_SELF'] ?>">
@@ -82,4 +91,17 @@ function getListMessages($client, $userId) {
         <a class='logout' href='?logout'>Logout</a>
     <?php endif ?>
 </div>
+<div id="list_email">
+    <?php if (isset($_POST['responseEmail'])) {
+        echo getListMessages($service,$_POST['responseEmail']);
+    }?>
+</div>
+<div class="email_text">
+    <?php if (isset($_GET['getEmail'])) {
+        echo (getTextEmail($service,$_GET['getEmail']));
+    }?>
+</div>
+</body>
+</html>
+
 
