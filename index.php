@@ -77,11 +77,7 @@ function getTextEmail($service,$messageId) {
     return '<div>'.$decodedMessage.'</div>';
 }
 ?>
-<html>
-<head>
-    <meta charset="UTF-8">
-</head>
-<body>
+<meta charset="UTF-8">
 <div class="box">
     <?php if (empty($short)): ?>
         <form id="url" method="POST" action="<?= $_SERVER['PHP_SELF'] ?>">
@@ -91,17 +87,11 @@ function getTextEmail($service,$messageId) {
         <a class='logout' href='?logout'>Logout</a>
     <?php endif ?>
 </div>
-<div id="list_email">
     <?php if (isset($_POST['responseEmail'])) {
         echo getListMessages($service,$_POST['responseEmail']);
-    }?>
-</div>
-<div class="email_text">
-    <?php if (isset($_GET['getEmail'])) {
+    }
+    if (isset($_GET['getEmail'])) {
         echo (getTextEmail($service,$_GET['getEmail']));
     }?>
-</div>
-</body>
-</html>
 
 
